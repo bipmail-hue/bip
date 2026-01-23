@@ -53,7 +53,6 @@ export const verifyDNI = async (req: AuthRequest, res: Response): Promise<void> 
       backImage,
       timestamp: new Date().toLocaleString('es-AR'),
       dniData,
-      bcraValidation: bcValidation,
     });
 
     res.json({ 

