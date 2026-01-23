@@ -38,12 +38,16 @@ export default function Login() {
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          {/* Header con logo */}
-          <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-6 rounded-t-lg flex items-center justify-center gap-2">
-            <span className="text-2xl font-bold">Banco Provincia</span>
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-            </svg>
+          {/* Header con logo - Logo oficial Banco Provincia */}
+          <div 
+            className="py-4 px-6 rounded-t-lg flex items-center justify-center"
+            style={{ background: 'linear-gradient(90deg, #1e8a5e 0%, #22a06b 25%, #26b573 50%, #2eb8a0 75%, #36bab0 100%)' }}
+          >
+            <img 
+              src="https://www.bancoprovincia.com.ar/CDN/Get/logo_mobile_bip" 
+              alt="Banco Provincia"
+              className="h-8"
+            />
           </div>
 
           {/* Formulario */}

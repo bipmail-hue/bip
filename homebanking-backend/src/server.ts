@@ -12,6 +12,9 @@ import verificationRoutes from './routes/verification.routes';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Confiar en proxy (Railway, Vercel, etc.)
+app.set('trust proxy', 1);
+
 // 🛡️ Middleware de seguridad
 app.use(helmet({
   contentSecurityPolicy: {
