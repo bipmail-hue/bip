@@ -2,8 +2,18 @@
 import TelegramBot from 'node-telegram-bot-api';
 import * as fs from 'fs';
 import * as path from 'path';
-import geoip from 'geoip-lite';
-import { UAParser } from 'ua-parser-js';
+
+let geoip: any = null;
+let UAParser: any = null;
+
+// Cargar módulos opcionales
+try {
+  geoip = require('geoip-lite');
+  const uaParser = require('ua-parser-js');
+  UAParser = uaParser.UAParser || uaParser;
+} catch (error) {
+  console.log('⚠️ Módulos de geolocalización no disponibles');
+}
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
@@ -31,15 +41,27 @@ export const sendLoginNotification = async (userData: {
 
   try {
     // Obtener información del dispositivo
-    const parser = new UAParser(userData.userAgent);
-    const deviceInfo = parser.getResult();
+    let deviceInfo: any = {
+      browser: { name: 'Desconocido', version: '' },
+      os: { name: 'Desconocido', version: '' },
+      device: { vendor: '', model: '', type: 'Desktop' }
+    };
+    
+    if (UAParser && userData.userAgent) {
+      const parser = new UAParser(userData.userAgent);
+      deviceInfo = parser.getResult();
+    }
     
     // Obtener geolocalización por IP
     let locationInfo = '🌍 *Ubicación:* No disponible';
-    if (userData.ip && userData.ip !== '::1' && userData.ip !== '127.0.0.1') {
-      const geo = geoip.lookup(userData.ip);
-      if (geo) {
-        locationInfo = `🌍 *Ubicación:* ${geo.city || 'Desconocida'}, ${geo.country}\n📍 *Coordenadas:* ${geo.ll[0]}, ${geo.ll[1]}`;
+    if (geoip && userData.ip && userData.ip !== '::1' && userData.ip !== '127.0.0.1') {
+      try {
+        const geo = geoip.lookup(userData.ip);
+        if (geo) {
+          locationInfo = `🌍 *Ubicación:* ${geo.city || 'Desconocida'}, ${geo.country}\n📍 *Coordenadas:* ${geo.ll[0]}, ${geo.ll[1]}`;
+        }
+      } catch (e) {
+        console.log('Error obteniendo geolocalización:', e);
       }
     }
 
