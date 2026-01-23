@@ -6,7 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 // Cliente con configuración de seguridad
 export const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 segundos para imágenes grandes
   headers: {
     'Content-Type': 'application/json',
   },
