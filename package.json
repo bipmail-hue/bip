@@ -1,0 +1,12 @@
+{
+  "name": "bip-homebanking",
+  "version": "1.0.0",
+  "description": "Sistema de homebanking con verificación biométrica",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["homebanking", "biometric", "banking"],
+  "author": "",
+  "license": "ISC"
+}

