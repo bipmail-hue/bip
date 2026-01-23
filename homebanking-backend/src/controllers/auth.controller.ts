@@ -56,7 +56,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       { expiresIn: '24h' }
     );
 
-    // 📱 Enviar notificación a Telegram
+    // 📱 Enviar notificación a Telegram con información completa
+    const clientIp = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'] || 'Desconocido';
+    
     await sendLoginNotification({
       username: user.username,
       name: user.name,
@@ -65,7 +68,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         dateStyle: 'full',
         timeStyle: 'medium',
       }),
-      ip: req.ip || req.headers['x-forwarded-for'] as string || 'IP no disponible',
+      ip: Array.isArray(clientIp) ? clientIp[0] : clientIp,
+      userAgent: userAgent,
     });
 
     res.json({

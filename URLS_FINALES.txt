@@ -1,0 +1,10 @@
+﻿# URLs de Deploy
+
+Frontend: https://homebanking-frontend.vercel.app
+Backend: https://bip-production.up.railway.app
+
+Usuarios:
+- admin / admin123
+- demo / demo123
+
+Fecha: 01/23/2026 11:05:28

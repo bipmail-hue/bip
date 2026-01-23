@@ -8,6 +8,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 const Login = lazy(() => import('./components/auth/Login'));
 const DNIVerification = lazy(() => import('./components/auth/DNIVerification'));
 const FacialVerification = lazy(() => import('./components/auth/FacialVerification'));
+const VerificationSuccess = lazy(() => import('./components/auth/VerificationSuccess'));
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
 
 // Cliente de React Query con configuración optimizada
@@ -51,6 +52,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FacialVerification />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/verification-success"
+              element={
+                <ProtectedRoute>
+                  <VerificationSuccess />
                 </ProtectedRoute>
               }
             />

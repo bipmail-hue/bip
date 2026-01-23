@@ -32,7 +32,7 @@ export default function FacialVerification() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const qualityCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const qualityCheckInterval = useRef<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -284,7 +284,8 @@ export default function FacialVerification() {
       // Simular procesamiento de seguridad adicional
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      navigate('/dashboard');
+      // Redirigir a página de confirmación en lugar del dashboard
+      navigate('/verification-success');
     } catch (error) {
       setErrorMessage('Error en la verificación. Por favor, intente nuevamente o contacte a soporte.');
     } finally {

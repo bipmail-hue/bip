@@ -18,14 +18,19 @@
   "description": "Backend seguro para aplicación de homebanking",
   "dependencies": {
     "@types/node-telegram-bot-api": "^0.64.13",
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
+    "form-data": "^4.0.5",
+    "geoip-lite": "^1.4.10",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "node-telegram-bot-api": "^0.67.0"
+    "multer": "^2.0.2",
+    "node-telegram-bot-api": "^0.67.0",
+    "ua-parser-js": "^2.0.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
