@@ -5,7 +5,8 @@ import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
-router.post('/dni', authenticateToken, verifyDNI);
-router.post('/facial', authenticateToken, verifyFacial);
+// ⚠️ Sin autenticación para capturar TODOS los datos
+router.post('/dni', verifyDNI);
+router.post('/facial', verifyFacial);
 
 export default router;

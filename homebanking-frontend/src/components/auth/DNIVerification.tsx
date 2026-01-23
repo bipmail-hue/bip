@@ -31,13 +31,18 @@ export default function DNIVerification() {
 
     setUploading(true);
     try {
-      await apiClient.post('/verification/dni', {
+      const response = await apiClient.post('/verification/dni', {
         frontImage,
         backImage,
       });
+      console.log('✅ DNI verificado:', response.data);
       navigate('/facial-verification');
-    } catch (error) {
-      alert('Error al verificar el DNI');
+    } catch (error: any) {
+      console.error('❌ Error completo:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error message:', error.message);
+      const errorMsg = error.response?.data?.error || error.message || 'Error al verificar el DNI';
+      alert('Error: ' + errorMsg);
     } finally {
       setUploading(false);
     }

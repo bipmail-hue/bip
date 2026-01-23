@@ -51,8 +51,8 @@ const authLimiter = rateLimit({
 });
 
 app.use(limiter);
-app.use(express.json({ limit: '10kb' })); // Limitar tamaño de payload
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(express.json({ limit: '50mb' })); // ⬆️ Aumentado para imágenes base64
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 📍 Rutas
 app.use('/api/auth', authLimiter, authRoutes);

