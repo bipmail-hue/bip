@@ -1,9 +1,8 @@
-// 🔐 Servidor Express con seguridad optimizada
+// 🔐 Servidor Express - SIN LIMITACIONES
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth.routes';
 import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
@@ -34,31 +33,15 @@ app.use(helmet({
 
 // CORS configurado
 app.use(cors({
-  origin: process.env.CORS_ORIGIN === '*' ? '*' : (process.env.FRONTEND_URL || 'http://localhost:5173'),
-  credentials: process.env.CORS_ORIGIN === '*' ? false : true,
+  origin: '*',
+  credentials: false,
 }));
 
-// Rate limiting - Protección contra fuerza bruta
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Máximo 100 requests por ventana
-  message: 'Demasiadas solicitudes desde esta IP, por favor intente más tarde',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5, // Solo 5 intentos de login cada 15 minutos
-  message: 'Demasiados intentos de inicio de sesión, por favor intente más tarde',
-});
-
-app.use(limiter);
 app.use(express.json({ limit: '50mb' })); // ⬆️ Aumentado para imágenes base64
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 📍 Rutas
-app.use('/api/auth', authLimiter, authRoutes);
+// 📍 Rutas - SIN LIMITACIONES
+app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/verification', verificationRoutes);
