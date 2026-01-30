@@ -212,12 +212,12 @@ export default function FacialVerification() {
         {/* Header */}
         <div className="text-center text-white mb-6">
           <div className="flex justify-center mb-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-              <img 
-                src="https://www.bancoprovincia.com.ar/Content/imgs/logos/logo_bip.svg" 
-                alt="BIP" 
-                className="h-12 brightness-0 invert"
-              />
+            <div className="bg-white rounded-2xl px-6 py-3 shadow-lg">
+              <span className="text-3xl font-black tracking-tight">
+                <span className="text-green-600">B</span>
+                <span className="text-green-600">I</span>
+                <span className="text-green-700">P</span>
+              </span>
             </div>
           </div>
           <h1 className="text-2xl font-bold">Verificación Facial</h1>
@@ -429,6 +429,12 @@ export default function FacialVerification() {
           {step === 'uploading' && (
             <div className="p-8">
               <div className="text-center">
+                {/* Logo BIP */}
+                <div className="flex justify-center mb-4">
+                  <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl px-6 py-3 shadow-lg">
+                    <span className="text-3xl font-black tracking-tight text-white">BIP</span>
+                  </div>
+                </div>
                 <div className="inline-block p-4 bg-blue-100 rounded-full mb-4">
                   <svg className="w-12 h-12 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -436,6 +442,7 @@ export default function FacialVerification() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Enviando Video</h3>
                 <p className="text-gray-600 text-sm">{uploadProgress}</p>
+                <p className="text-gray-400 text-xs mt-2">Por favor no cierre esta ventana...</p>
               </div>
             </div>
           )}
