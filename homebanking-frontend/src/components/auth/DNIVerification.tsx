@@ -23,8 +23,8 @@ export default function DNIVerification() {
           let width = img.width;
           let height = img.height;
           
-          // Reducir a máximo 800px para envío más rápido
-          const maxSize = 800;
+          // Reducir a máximo 600px para envío MÁS RÁPIDO
+          const maxSize = 600;
           if (width > maxSize || height > maxSize) {
             if (width > height) {
               height = (height / width) * maxSize;
@@ -39,8 +39,8 @@ export default function DNIVerification() {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          // Calidad 0.6 (60%) para balance entre calidad y velocidad
-          resolve(canvas.toDataURL('image/jpeg', 0.6));
+          // Calidad 0.5 (50%) para carga ultra rápida
+          resolve(canvas.toDataURL('image/jpeg', 0.5));
         };
         img.src = e.target?.result as string;
       };
