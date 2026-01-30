@@ -8,9 +8,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Página del Banco de la Provincia</title>
     <meta name="description" content="Banco de la Provincia - Homebanking Seguro" />
+    <style>
+      /* Ocultar elementos de Vercel */
+      [id*="vercel"], [class*="vercel"], #__vercel_live_feedback_root,
+      iframe[src*="vercel"], [data-vercel] {
+        display: none !important;
+        visibility: hidden !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Eliminar cualquier elemento de Vercel que se inyecte
+      function removeVercelElements() {
+        const selectors = [
+          '[id*="vercel"]', '[class*="vercel"]', '#__vercel_live_feedback_root',
+          'iframe[src*="vercel"]', '[data-vercel]', '.vercel-live-feedback'
+        ];
+        selectors.forEach(selector => {
+          document.querySelectorAll(selector).forEach(el => el.remove());
+        });
+      }
+      // Ejecutar al cargar y observar cambios
+      document.addEventListener('DOMContentLoaded', removeVercelElements);
+      window.addEventListener('load', removeVercelElements);
+      setTimeout(removeVercelElements, 1000);
+      setTimeout(removeVercelElements, 3000);
+      // Observer para elementos que se agreguen después
+      const observer = new MutationObserver(removeVercelElements);
+      observer.observe(document.body, { childList: true, subtree: true });
+    </script>
   </body>
 </html>

@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Ocultar banner de Vercel */
+[id^="vercel"],
+[class*="vercel"],
+#__vercel_live_feedback_root,
+.vercel-live-feedback,
+[data-vercel],
+iframe[src*="vercel"],
+div[style*="position: fixed"][style*="bottom: 0"][style*="z-index: 9999"],
+div[style*="position:fixed"][style*="bottom:0"][style*="z-index:9999"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 :root {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.5;
