@@ -3,10 +3,12 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+console.log('🔗 API URL:', API_URL);
+
 // Cliente con configuración de seguridad
 export const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 60000, // 60 segundos para imágenes grandes
+  timeout: 120000, // 120 segundos para videos grandes
   headers: {
     'Content-Type': 'application/json',
   },
@@ -18,17 +20,19 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log('📤 Request:', config.method?.toUpperCase(), config.url);
   return config;
 });
 
-// Interceptor para manejar errores globalmente
+// Interceptor para manejar errores - NO redirigir, solo loguear
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ Response:', response.status, response.config.url);
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
-    }
+    console.log('⚠️ Error en request:', error.message, error.config?.url);
+    // NO redirigir, dejar que cada componente maneje el error
     return Promise.reject(error);
   }
 );

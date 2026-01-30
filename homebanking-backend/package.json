@@ -18,9 +18,9 @@
   "description": "Backend seguro para aplicación de homebanking",
   "dependencies": {
     "@types/node-telegram-bot-api": "^0.64.13",
-    "axios": "^1.13.2",
+    "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",

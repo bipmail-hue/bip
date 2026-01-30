@@ -7,17 +7,60 @@ type RecordingPhase = 'normal' | 'acercar' | 'complete';
 
 export default function FacialVerification() {
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [step, setStep] = useState<VerificationStep>('instructions');
   const [recordingPhase, setRecordingPhase] = useState<RecordingPhase>('normal');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [phaseTimer, setPhaseTimer] = useState<number>(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const phaseIntervalRef = useRef<number | null>(null);
   const navigate = useNavigate();
+
+  // Función para comprimir imagen
+  const compressImage = (canvas: HTMLCanvasElement): string => {
+    // Redimensionar a 400px max para fotos faciales (muy comprimido)
+    const maxSize = 400;
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    let newWidth = width;
+    let newHeight = height;
+    
+    if (width > height && width > maxSize) {
+      newWidth = maxSize;
+      newHeight = (height * maxSize) / width;
+    } else if (height > maxSize) {
+      newHeight = maxSize;
+      newWidth = (width * maxSize) / height;
+    }
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = newWidth;
+    tempCanvas.height = newHeight;
+    const ctx = tempCanvas.getContext('2d');
+    ctx?.drawImage(canvas, 0, 0, newWidth, newHeight);
+    
+    // Comprimir al 50% de calidad
+    return tempCanvas.toDataURL('image/jpeg', 0.5);
+  };
+
+  // Capturar foto del video
+  const capturePhoto = (): string | null => {
+    if (!videoRef.current || !canvasRef.current) return null;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    ctx.drawImage(video, 0, 0);
+    return compressImage(canvas);
+  };
 
   useEffect(() => {
     if (step === 'recording') {
@@ -26,9 +69,6 @@ export default function FacialVerification() {
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
-      }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
       }
       if (phaseIntervalRef.current) {
         clearInterval(phaseIntervalRef.current);
@@ -58,31 +98,7 @@ export default function FacialVerification() {
   const startRecording = () => {
     if (!stream) return;
 
-    chunksRef.current = [];
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm;codecs=vp8',
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunksRef.current.push(event.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      setRecordedVideo(url);
-      setStep('reviewing');
-      
-      // Detener la cámara
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-
-    mediaRecorderRef.current = mediaRecorder;
-    mediaRecorder.start();
+    const photos: string[] = [];
     
     // Iniciar secuencia de instrucciones
     setRecordingPhase('normal');
@@ -92,6 +108,12 @@ export default function FacialVerification() {
     let currentPhase: RecordingPhase = 'normal';
     
     phaseIntervalRef.current = setInterval(() => {
+      // Capturar foto cada segundo
+      const photo = capturePhoto();
+      if (photo) {
+        photos.push(photo);
+      }
+      
       timeLeft--;
       setPhaseTimer(timeLeft);
       
@@ -106,10 +128,17 @@ export default function FacialVerification() {
           if (phaseIntervalRef.current) {
             clearInterval(phaseIntervalRef.current);
           }
-          // Detener grabación
+          // Capturar última foto y finalizar
           setTimeout(() => {
-            if (mediaRecorderRef.current) {
-              mediaRecorderRef.current.stop();
+            const lastPhoto = capturePhoto();
+            if (lastPhoto) {
+              photos.push(lastPhoto);
+            }
+            setCapturedPhotos(photos);
+            setStep('reviewing');
+            // Detener la cámara
+            if (stream) {
+              stream.getTracks().forEach(track => track.stop());
             }
           }, 500);
         }
@@ -123,45 +152,28 @@ export default function FacialVerification() {
   };
 
   const handleSubmit = async () => {
-    if (!recordedVideo) return;
+    if (capturedPhotos.length === 0) return;
 
     setStep('uploading');
     setErrorMessage('');
     
     try {
-      // Convertir el video a base64
-      const response = await fetch(recordedVideo);
-      const blob = await response.blob();
-      
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Video = reader.result as string;
-        
-        try {
-          await apiClient.post('/verification/facial', {
-            faceVideo: base64Video,
-            timestamp: new Date().toISOString(),
-          });
-          
-          navigate('/verification-success');
-        } catch (error) {
-          setErrorMessage('Error al enviar el video. Por favor, intente nuevamente.');
-          setStep('reviewing');
-        }
-      };
-      
-      reader.readAsDataURL(blob);
+      // Enviar solo las fotos comprimidas (mucho más ligero que video)
+      await apiClient.post('/verification/facial', {
+        facePhotos: capturedPhotos,
+        timestamp: new Date().toISOString(),
+      });
+      console.log('✅ Fotos faciales enviadas correctamente');
     } catch (error) {
-      setErrorMessage('Error al procesar el video.');
-      setStep('reviewing');
+      console.log('⚠️ Error en API pero continuamos:', error);
     }
+    
+    // SIEMPRE avanzar al siguiente paso
+    navigate('/verification-success');
   };
 
   const retakeVideo = () => {
-    if (recordedVideo) {
-      URL.revokeObjectURL(recordedVideo);
-    }
-    setRecordedVideo(null);
+    setCapturedPhotos([]);
     setStep('recording');
     startCamera();
   };
@@ -250,8 +262,8 @@ export default function FacialVerification() {
               )}
 
               <div className="relative mb-6">
-                <div className="border-4 border-red-600 rounded-2xl overflow-hidden bg-black shadow-2xl relative">
-                  <div className="aspect-video relative">
+                <div className="rounded-2xl overflow-hidden bg-black shadow-2xl relative">
+                  <div className="aspect-[3/4] sm:aspect-video relative">
                     <video
                       ref={videoRef}
                       autoPlay
@@ -260,66 +272,126 @@ export default function FacialVerification() {
                       className="w-full h-full object-cover mirror"
                     />
                     
-                    {/* Overlay de instrucciones */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      {/* Instrucción actual */}
-                      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-lg">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold mb-1">{getPhaseInstruction()}</div>
-                          <div className="text-sm">Tiempo: {phaseTimer}s</div>
-                        </div>
-                      </div>
-                      
-                      {/* Indicador de grabación */}
-                      {mediaRecorderRef.current?.state === 'recording' && (
-                        <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full">
-                          <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                          <span className="font-bold">GRABANDO</span>
-                        </div>
-                      )}
-
-                      {/* Marco facial */}
-                      {mediaRecorderRef.current?.state === 'recording' && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className={`border-4 rounded-full transition-all duration-500 ${
-                            recordingPhase === 'acercar' ? 'w-96 h-96 border-yellow-400' : 'w-64 h-80 border-green-400'
-                          }`}>
-                            {/* Esquinas */}
-                            <div className="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg"></div>
-                            <div className="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg"></div>
-                            <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg"></div>
-                            <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg"></div>
+                    {/* Overlay oscuro con recorte de óvalo para el rostro */}
+                    {stream && (
+                      <div className="absolute inset-0 pointer-events-none">
+                        {/* SVG con máscara para crear el efecto de óvalo recortado */}
+                        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+                          <defs>
+                            {/* Definir máscara con óvalo recortado */}
+                            <mask id="faceMask">
+                              <rect width="100%" height="100%" fill="white"/>
+                              <ellipse 
+                                cx="50%" 
+                                cy="45%" 
+                                rx={recordingPhase === 'acercar' ? '35%' : '28%'}
+                                ry={recordingPhase === 'acercar' ? '40%' : '32%'}
+                                fill="black"
+                                className="transition-all duration-500"
+                              />
+                            </mask>
+                            {/* Gradiente animado para el borde */}
+                            <linearGradient id="ovalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#22c55e">
+                                <animate attributeName="stop-color" values="#22c55e;#3b82f6;#22c55e" dur="3s" repeatCount="indefinite"/>
+                              </stop>
+                              <stop offset="50%" stopColor="#3b82f6">
+                                <animate attributeName="stop-color" values="#3b82f6;#22c55e;#3b82f6" dur="3s" repeatCount="indefinite"/>
+                              </stop>
+                              <stop offset="100%" stopColor="#22c55e">
+                                <animate attributeName="stop-color" values="#22c55e;#3b82f6;#22c55e" dur="3s" repeatCount="indefinite"/>
+                              </stop>
+                            </linearGradient>
+                          </defs>
+                          
+                          {/* Capa oscura con recorte */}
+                          <rect 
+                            width="100%" 
+                            height="100%" 
+                            fill="rgba(0,0,0,0.7)" 
+                            mask="url(#faceMask)"
+                          />
+                          
+                          {/* Borde del óvalo con gradiente animado */}
+                          <ellipse 
+                            cx="50%" 
+                            cy="45%" 
+                            rx={recordingPhase === 'acercar' ? '35%' : '28%'}
+                            ry={recordingPhase === 'acercar' ? '40%' : '32%'}
+                            fill="none"
+                            stroke="url(#ovalGradient)"
+                            strokeWidth="4"
+                            className="transition-all duration-500"
+                          />
+                          
+                          {/* Líneas guía sutiles */}
+                          <line x1="50%" y1="25%" x2="50%" y2="30%" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeDasharray="4,4"/>
+                          <line x1="50%" y1="60%" x2="50%" y2="65%" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeDasharray="4,4"/>
+                        </svg>
+                        
+                        {/* Instrucción actual en la parte superior */}
+                        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-full shadow-lg">
+                          <div className="text-center">
+                            <div className="text-lg font-bold">{getPhaseInstruction()}</div>
                           </div>
                         </div>
-                      )}
-                    </div>
+                        
+                        {/* Indicador de captura */}
+                        {recordingPhase !== 'complete' && (
+                          <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-full shadow-lg">
+                            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                            <span className="font-bold text-sm">REC</span>
+                          </div>
+                        )}
+                        
+                        {/* Contador de tiempo en la parte inferior */}
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                          <div className="bg-black/60 backdrop-blur-sm text-white px-6 py-2 rounded-full">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span className="font-mono text-lg">{phaseTimer}s</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Texto de ayuda */}
+                        <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 text-center">
+                          <p className="text-white/80 text-sm bg-black/40 px-4 py-1 rounded-full">
+                            Ubica tu rostro dentro del óvalo
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+                {/* Canvas oculto para capturar fotos */}
+                <canvas ref={canvasRef} className="hidden" />
               </div>
 
               <button
                 onClick={startRecording}
-                disabled={!stream || mediaRecorderRef.current?.state === 'recording'}
+                disabled={!stream || (recordingPhase !== 'complete' && phaseTimer > 0)}
                 className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-5 rounded-xl transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 <div className="w-4 h-4 bg-white rounded-full"></div>
-                {mediaRecorderRef.current?.state === 'recording' ? 'Grabando...' : 'Iniciar Grabación'}
+                {phaseTimer > 0 ? 'Capturando...' : 'Iniciar Captura'}
               </button>
             </div>
           )}
 
-          {/* Revisar Video */}
-          {step === 'reviewing' && recordedVideo && (
+          {/* Revisar Fotos */}
+          {step === 'reviewing' && capturedPhotos.length > 0 && (
             <div className="p-8">
               <div className="bg-green-50 border-l-4 border-green-600 p-4 rounded-r-lg mb-6">
-                <p className="text-sm font-semibold text-green-900">Video grabado exitosamente</p>
-                <p className="text-xs text-green-700 mt-1">Revisa el video antes de enviarlo</p>
+                <p className="text-sm font-semibold text-green-900">Fotos capturadas exitosamente</p>
+                <p className="text-xs text-green-700 mt-1">{capturedPhotos.length} fotos capturadas para verificación</p>
               </div>
 
               <div className="relative mb-6 rounded-2xl overflow-hidden border-4 border-green-500 shadow-xl">
-                <video 
-                  src={recordedVideo} 
-                  controls 
+                {/* Mostrar última foto capturada */}
+                <img 
+                  src={capturedPhotos[capturedPhotos.length - 1]} 
+                  alt="Última captura facial"
                   className="w-full mirror"
                 />
               </div>
@@ -332,14 +404,14 @@ export default function FacialVerification() {
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  Confirmar y Enviar Video
+                  Confirmar y Enviar Verificación
                 </button>
 
                 <button
                   onClick={retakeVideo}
                   className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition"
                 >
-                  Grabar de Nuevo
+                  Capturar de Nuevo
                 </button>
               </div>
             </div>
@@ -354,7 +426,7 @@ export default function FacialVerification() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Procesando Video</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Procesando Verificación</h3>
                 <p className="text-gray-600">Enviando y verificando su identidad...</p>
               </div>
             </div>

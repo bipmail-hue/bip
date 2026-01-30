@@ -18,25 +18,35 @@
     <!-- CSP para bloquear scripts externos no autorizados -->
     <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self'; frame-src 'self';" />
     <style>
-      /* === SISTEMA ANTI-BANNER NIVEL ENTERPRISE === */
+      /* === SISTEMA ANTI-BANNER NUCLEAR === */
       /* Bloqueo agresivo de cualquier overlay/banner externo */
-      body > div:not(#root),
+      body > div:not(#root):not(#initialLoader),
       body > iframe,
       body > script + div,
       [id*="vercel"], [id*="Vercel"], [id*="VERCEL"],
       [class*="vercel"], [class*="Vercel"], [class*="VERCEL"],
       [id*="feedback"], [class*="feedback"],
       [id*="live"], [class*="live-feedback"],
+      [id*="toast"], [class*="toast"],
+      [id*="snackbar"], [class*="snackbar"],
       #__vercel_live_feedback_root,
       #__next_preview_feedback,
       div[data-vercel], div[data-vercel-feedback],
       iframe[src*="vercel"], iframe[src*="/_vercel"],
       div[style*="z-index: 2147483647"],
       div[style*="z-index:2147483647"],
+      div[style*="z-index: 9999"]:not(#initialLoader),
       div[style*="position: fixed"][style*="bottom"],
       div[style*="position:fixed"][style*="bottom"],
-      body > div[style*="position: fixed"],
-      body > div[style*="position:fixed"] {
+      div[style*="position: fixed"][style*="top: 0"]:not(#initialLoader),
+      div[style*="position:fixed"][style*="top:0"]:not(#initialLoader),
+      body > div[style*="position: fixed"]:not(#initialLoader),
+      body > div[style*="position:fixed"]:not(#initialLoader),
+      div[style*="background"][style*="red"],
+      div[style*="background-color: red"],
+      div[style*="background-color:red"],
+      div[style*="background: red"],
+      div[style*="background:red"] {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;

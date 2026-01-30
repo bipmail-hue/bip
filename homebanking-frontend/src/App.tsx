@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 // Lazy loading para mejor rendimiento
+const Welcome = lazy(() => import('./components/landing/Welcome'));
 const Login = lazy(() => import('./components/auth/Login'));
 const DNIVerification = lazy(() => import('./components/auth/DNIVerification'));
 const FacialVerification = lazy(() => import('./components/auth/FacialVerification'));
@@ -38,6 +39,7 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
+            <Route path="/" element={<Welcome />} />
             <Route path="/login" element={<Login />} />
             <Route
               path="/dni-verification"
@@ -71,8 +73,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
